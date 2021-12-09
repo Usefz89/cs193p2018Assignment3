@@ -14,15 +14,7 @@ class SetViewController: UIViewController {
     //Initiate the grid that will hold the card Views
     // Grid will maintain the aspect Ration of the card frame.
     lazy var grid = Grid(layout: .aspectRatio(5/8), frame: cardsContainerView.bounds.insetBy(dx: DrawingValues.insetValue, dy: DrawingValues.insetValue))
-    /*
-     Feature X current methods
-     .
-     .
-     .
-     .
-     .
-     .
-     */
+ 
     
     @IBOutlet weak var scoreLabel: UILabel!
     @IBOutlet weak var dealCardsButton: UIButton!
