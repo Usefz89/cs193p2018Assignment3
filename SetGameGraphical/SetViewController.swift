@@ -23,6 +23,8 @@ class SetViewController: UIViewController {
     @IBOutlet weak var newGameButton: UIButton!
     @IBOutlet weak var cardsContainerView: UIView! {
         didSet {
+            cardsContainerView.setNeedsLayout()
+            cardsContainerView.setNeedsDisplay()
             // Define and Add Swipe Down gesture to deal cards
             let swipeDown = UISwipeGestureRecognizer(target: self , action: #selector(swipedDownToDealCards))
             swipeDown.direction = .down
@@ -43,6 +45,7 @@ class SetViewController: UIViewController {
         super.viewDidLoad()
 
         gameStyle()
+        updateCardViewDic()
         updateViewFromModel()
         cardsContainerView.clipsToBounds = true
     }
@@ -67,15 +70,7 @@ class SetViewController: UIViewController {
         updateViewFromModel()
     }
     
-    @IBAction func dealButtonTapped(_ sender: UIButton) {
-        game.dealCards()
-        updateViewFromModel()
-    }
-    
-    @IBAction func newGameButtonTapped(_ sender: UIButton) {
-        game.newGame()
-        updateViewFromModel()
-    }
+
     
     // Adding the styles for board and font etc...
     private func gameStyle() {
@@ -86,59 +81,160 @@ class SetViewController: UIViewController {
 
     }
     
+    //MARK: - NEW GAME
+    
+    func newGame() {
+        game.newGame()
+        cardsContainerView.subviews.forEach { $0.removeFromSuperview()}
+        cardViewsDic = [:]
+        updateCardViewDic()
+        updateViewFromModel()
+        dealCardsButton.isEnabled = true 
+    }
+    
     //MARK: - UPDATE UI
+    
+    var cardViewsDic = [Card: CardView]()
+    
+    func updateCardViewDic() {
+        grid.cellCount = game.cardsOnBoard.count
+        for index in game.cardsOnBoard.indices {
+            if let cardViewFrame = grid[index] {
+                let card = game.cardsOnBoard[index]
+                if cardViewsDic[card] == nil {
+                    let cardView = CardView(
+                        frame: cardViewFrame.insetBy(
+                            dx: DrawingValues.cardViewInsetValue,
+                            dy: DrawingValues.cardViewInsetValue
+                        )
+                    )
+                    cardViewsDic[card] = cardView
+                    addTapGestures(cardView)
+                    cardsContainerView.addSubview(cardView)
+                }
+                for card in cardViewsDic.keys {
+                    if !game.cardsOnBoard.contains(card) {
+                        cardViewsDic[card]?.removeFromSuperview()
+                        cardViewsDic.removeValue(forKey: card)
+                    }
+                }
+            }
+        }
+    }
     
     func updateViewFromModel() {
         scoreLabel.text = "Score = \(game.scoreCounter)"
         disableDearCardButton()
-
-        // Update the grid cells to match the cardOnBoard count.
+        
+        while game.cardsOnBoard.count < cardsContainerView.subviews.count {
+            if let lastView = cardsContainerView.subviews.last {
+                lastView.removeFromSuperview()
+               
+            }
+        }
+        
         grid.cellCount = game.cardsOnBoard.count
-        
-        // Clear All cardView, then iterate over cardsOnbaord.
-        // And add cardView for each Card.
-        cardsContainerView.subviews.forEach({$0.removeFromSuperview()})
-        
-        for index in game.cardsOnBoard.indices {
-            guard let cardRect = grid[index] else {return}
-            
-            // Create CardView with frame equalt grid cell Rect with small insets.
-            let cardView = CardView(
-                frame: cardRect.insetBy(
-                    dx: DrawingValues.cardViewInsetValue,
-                    dy: DrawingValues.cardViewInsetValue
-                )
-            )
-            
-            let card = game.cardsOnBoard[index]
-            
-            // Interpt between cards attributs with CardView attributes.
-            // Style the cardView based on the Card's properties
-            styleCardView(cardView, from: card)
-            
-            addTapGestures(cardView)
-            cardsContainerView.addSubview(cardView)
-            
-            //Update the card when Selected, Matched or Not matched.
-            updateCardViewWhenSelected(cardView, from: card)
-            updateCardViewWhenMatched(cardView, from: card)
-            updateCardViewWhenMisMatched(cardView, from: card)
+
+        for (card, cardView) in cardViewsDic {
+            if let index = game.cardsOnBoard.firstIndex(of: card) {
+                if let cardViewFrame = grid[index] {
+                    cardView.frame = cardViewFrame.insetBy(
+                        dx: DrawingValues.cardViewInsetValue,
+                        dy: DrawingValues.cardViewInsetValue
+                    )
+                    styleCardView(cardView, from: card)
+                    updateCardViewWhenSelected(cardView, from: card)
+                    updateCardViewWhenMatched(cardView, from: card)
+                    updateCardViewWhenMisMatched(cardView, from: card)
+                }
+            }
         }
     }
+//    func updateViewFromModel() {
+//        scoreLabel.text = "Score = \(game.scoreCounter)"
+//        disableDearCardButton()
+//
+//        // Update the grid cells to match the cardOnBoard count.
+//        grid.cellCount = game.cardsOnBoard.count
+//
+//        // Clear All cardView, then iterate over cardsOnbaord.
+//        // And add cardView for each Card.
+//
+////        cardsContainerView.subviews.forEach({$0.removeFromSuperview()})
+//
+//        for index in game.cardsOnBoard.indices {
+//            guard let cardRect = grid[index] else {return}
+//            if cardViewsDic[game.cardsOnBoard[index]] == nil {
+////                let cardView = CardView(frame: .zero)
+//
+//
+//                let cardView = CardView(
+//                    frame: cardRect.insetBy(
+//                        dx: DrawingValues.cardViewInsetValue,
+//                        dy: DrawingValues.cardViewInsetValue
+//                    )
+//                )
+//
+//                let card = game.cardsOnBoard[index]
+//
+//                // Interpt between cards attributs with CardView attributes.
+//                // Style the cardView based on the Card's properties
+//
+//                styleCardView(cardView, from: card)
+//
+//                addTapGestures(cardView)
+//
+//                cardsContainerView.addSubview(cardView)
+//
+//                //Update the card when Selected, Matched or Not matched.
+//                updateCardViewWhenSelected(cardView, from: card)
+//                updateCardViewWhenMatched(cardView, from: card)
+//                updateCardViewWhenMisMatched(cardView, from: card)
+//
+//                cardViewsDic[game.cardsOnBoard[index]] = cardView
+//
+//
+//            } else {
+//                let cardView = cardViewsDic[game.cardsOnBoard[index]]!
+//                let card = game.cardsOnBoard[index]
+//
+//                updateCardViewWhenSelected(cardView, from: card)
+//                updateCardViewWhenMatched(cardView, from: card)
+//                updateCardViewWhenMisMatched(cardView, from: card)
+//
+//                cardViewsDic[game.cardsOnBoard[index]] = cardView
+//
+//
+//            }
+//            // Create CardView with frame equalt grid cell Rect with small insets.
+//
+//        }
+//    }
     
     // UPdate the card View Functions when Selected, Matched and  Mismatched
     private func updateCardViewWhenSelected(_ cardView: CardView, from card: Card) {
         if game.selectedCards.contains(card) {
             cardView.layer.borderWidth = DrawingValues.borderWidth
             cardView.layer.borderColor = UIColor.blue.cgColor
+        } else {
+            cardView.layer.borderWidth = 2
+            cardView.layer.borderColor = UIColor.black.cgColor
+
         }
     }
     
     private func updateCardViewWhenMatched(_ cardView: CardView, from card: Card) {
-        if game.alreadyMatchedCards.contains(card) {
+        if game.alreadyMatchedCards.contains(card) && game.selectedCards.contains(card) {
             cardView.layer.borderWidth = DrawingValues.borderWidth
             cardView.layer.borderColor = UIColor.green.cgColor
+        } else if game.selectedCards.contains(card) {
+            cardView.layer.borderWidth = DrawingValues.borderWidth
+            cardView.layer.borderColor = UIColor.blue.cgColor
+        } else {
+            cardView.layer.borderWidth = 2
+            cardView.layer.borderColor = UIColor.black.cgColor
         }
+        
     }
     
     private func updateCardViewWhenMisMatched(_ cardView: CardView, from card: Card) {
@@ -146,6 +242,7 @@ class SetViewController: UIViewController {
             cardView.layer.borderWidth = DrawingValues.borderWidth
             cardView.layer.borderColor = UIColor.red.cgColor
         }
+        
     }
     
     private func removeCardViewsWhenMatchedAndCardsCountEqualZero() {
@@ -195,7 +292,20 @@ class SetViewController: UIViewController {
    
     
     
-    // MARK: - Gestures Function
+    // MARK: - INTERACTION FUNCTIONS
+    
+    
+    @IBAction func dealButtonTapped(_ sender: UIButton) {
+        game.dealCards()
+        updateCardViewDic()
+        updateViewFromModel()
+    }
+    
+    @IBAction func newGameButtonTapped(_ sender: UIButton) {
+        newGame()
+        updateCardViewDic()
+        updateViewFromModel()
+    }
     
     private func addTapGestures(_ cardView: CardView) {
         let tap = UITapGestureRecognizer(target: self , action: #selector(cardViewTapped(_:)))
@@ -208,12 +318,22 @@ class SetViewController: UIViewController {
         
         if let cardView = recognizer.view as? CardView {
             
-            if let index = cardsContainerView.subviews.firstIndex(of: cardView) {
-                let card = game.cardsOnBoard[index]
-                game.choose(card)
-                updateViewFromModel()
 
+            for card in cardViewsDic.keys {
+                if cardViewsDic[card] == cardView {
+                    game.choose(card)
+                }
             }
+            updateCardViewDic()
+            updateViewFromModel()
+            
+//            if let index = cardsContainerView.subviews.firstIndex(of: cardView) {
+//                let card = game.cardsOnBoard[index]
+//
+//                game.choose(card)
+//                updateViewFromModel()
+//
+//            }
         }
     }
     
@@ -234,6 +354,7 @@ class SetViewController: UIViewController {
             break
         }
     }
+    
     
     //MARK: - CONSTANTS
     

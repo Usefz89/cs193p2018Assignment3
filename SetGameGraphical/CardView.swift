@@ -10,7 +10,7 @@ import UIKit
 class CardView: UIView {
     
     //Properties of the Card.
-    var shape: Shape = .squiggle
+    var shape: Shape = .squiggle 
     var shade: Shade = .striped
     var color: UIColor = .red
     var numberOfShapes: NumberOfShapes = .three
